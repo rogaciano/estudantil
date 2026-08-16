@@ -46,72 +46,81 @@
         {% endif %}
     </form>
 
-    <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {% for orcamento in orcamentos %}
-            <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-                <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Orçamento</p>
-                        <h2 class="mt-2 text-lg font-semibold text-slate-100">{{ orcamento.nome_orcamento }}</h2>
-                        <p class="mt-1 text-sm text-slate-400">
-                            {{ orcamento.tamanho.nome }} • {{ orcamento.espessura.milimetros }} mm
-                        </p>
-                    </div>
-                    <span class="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200">
-                        {{ orcamento.data_orcamento|date:"d/m/Y" }}
-                    </span>
-                </div>
-
-                <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                    <div class="rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-4 py-3">
-                        <p class="text-xs uppercase tracking-[0.18em] text-cyan-300">Valor total</p>
-                        <p class="mt-2 text-xl font-semibold text-cyan-200">
-                            {{ orcamento.detalhes_json.calculo.valor_total_brl|default:orcamento.valor_total }}
-                        </p>
-                    </div>
-                    <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-                        <p class="text-xs uppercase tracking-[0.18em] text-emerald-300">Quantidade</p>
-                        <p class="mt-2 text-xl font-semibold text-emerald-200">{{ orcamento.quantidade }}</p>
-                    </div>
-                </div>
-
-                <dl class="mt-5 space-y-3 text-sm text-slate-300">
-                    <div class="flex items-center justify-between gap-4">
-                        <dt>Material</dt>
-                        <dd>{{ orcamento.material.tipo }}</dd>
-                    </div>
-                    <div class="flex items-center justify-between gap-4">
-                        <dt>Base</dt>
-                        <dd>{{ orcamento.tipo_base.nome_base }}</dd>
-                    </div>
-                    <div class="flex items-center justify-between gap-4">
-                        <dt>Faixa aplicada</dt>
-                        <dd>{{ orcamento.detalhes_json.desconto_quantidade.faixa|default:"-" }}</dd>
-                    </div>
-                </dl>
-
-                <div class="mt-5 flex flex-wrap gap-3">
-                    <a
-                        href="{% url 'public_orcamento_detail' orcamento.pk %}"
-                        class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-cyan-400 hover:text-cyan-200"
-                    >
-                        Ver detalhes
-                    </a>
-                    <a
-                        href="{% url 'public_orcamento_print' orcamento.pk %}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="inline-flex items-center justify-center rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-white"
-                    >
-                        Imprimir
-                    </a>
-                </div>
-            </article>
-        {% empty %}
-            <div class="lg:col-span-2 xl:col-span-3 rounded-2xl border border-dashed border-slate-700 bg-slate-900 px-5 py-10 text-center text-sm text-slate-400">
-                Nenhum orçamento encontrado para os filtros atuais.
-            </div>
-        {% endfor %}
+    <div class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-800 text-sm">
+                <thead class="bg-slate-950/60 text-left text-slate-300">
+                    <tr>
+                        <th class="px-5 py-4 font-medium">Data</th>
+                        <th class="px-5 py-4 font-medium">Orçamento</th>
+                        <th class="px-5 py-4 font-medium">Tamanho</th>
+                        <th class="px-5 py-4 font-medium">Material</th>
+                        <th class="px-5 py-4 font-medium">Base</th>
+                        <th class="px-5 py-4 font-medium">Quantidade</th>
+                        <th class="px-5 py-4 font-medium">Faixa</th>
+                        <th class="px-5 py-4 font-medium">Valor total</th>
+                        <th class="px-5 py-4 font-medium">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for orcamento in orcamentos %}
+                        <tr class="align-top text-slate-100">
+                            <td class="whitespace-nowrap px-5 py-4 text-slate-300">
+                                {{ orcamento.data_orcamento|date:"d/m/Y" }}
+                            </td>
+                            <td class="px-5 py-4">
+                                <div class="font-medium">{{ orcamento.nome_orcamento }}</div>
+                                <div class="mt-1 text-xs text-slate-400">
+                                    {{ orcamento.espessura.milimetros }} mm
+                                </div>
+                            </td>
+                            <td class="whitespace-nowrap px-5 py-4">
+                                {{ orcamento.tamanho.nome }}
+                            </td>
+                            <td class="px-5 py-4">
+                                {{ orcamento.material.tipo }}
+                            </td>
+                            <td class="px-5 py-4">
+                                {{ orcamento.tipo_base.nome_base }}
+                            </td>
+                            <td class="whitespace-nowrap px-5 py-4 text-center">
+                                {{ orcamento.quantidade }}
+                            </td>
+                            <td class="px-5 py-4 text-slate-300">
+                                {{ orcamento.detalhes_json.desconto_quantidade.faixa|default:"-" }}
+                            </td>
+                            <td class="whitespace-nowrap px-5 py-4 font-medium text-cyan-300">
+                                {{ orcamento.detalhes_json.calculo.valor_total_brl|default:orcamento.valor_total }}
+                            </td>
+                            <td class="px-5 py-4">
+                                <div class="flex flex-wrap gap-2">
+                                    <a
+                                        href="{% url 'public_orcamento_detail' orcamento.pk %}"
+                                        class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-medium text-slate-100 transition hover:border-cyan-400 hover:text-cyan-200"
+                                    >
+                                        Ver detalhes
+                                    </a>
+                                    <a
+                                        href="{% url 'public_orcamento_print' orcamento.pk %}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-950 transition hover:bg-white"
+                                    >
+                                        Imprimir
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="px-5 py-10 text-center text-sm text-slate-400">
+                                Nenhum orçamento encontrado para os filtros atuais.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {% if page_obj.paginator.num_pages > 1 %}
