@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}{{ orcamento.nome_orcamento }} | Orçamento{% endblock %}
+
+{% block content %}
+<section class="space-y-8">
+    <div class="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl shadow-slate-950/30">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <p class="text-sm uppercase tracking-[0.2em] text-cyan-400">Orçamento salvo</p>
+                <h1 class="mt-3 text-3xl font-semibold tracking-tight">{{ orcamento.nome_orcamento }}</h1>
+                <p class="mt-3 text-sm text-slate-300">
+                    Registrado em {{ orcamento.data_orcamento|date:"d/m/Y" }} com
+                    {{ orcamento.quantidade }} unidade{{ orcamento.quantidade|pluralize }}.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a
+                    href="{% url 'public_home' %}"
+                    class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-cyan-400 hover:text-cyan-200"
+                >
+                    Voltar
+                </a>
+                <a
+                    href="{% url 'public_orcamento_print' orcamento.pk %}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+                >
+                    Imprimir
+                </a>
+            </div>
+        </div>
+
+        <div class="mt-8 grid gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+                <p class="text-xs uppercase tracking-[0.18em] text-cyan-300">Valor total</p>
+                <p class="mt-2 text-2xl font-semibold text-cyan-200">{{ orcamento.detalhes_json.calculo.valor_total_brl }}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <p class="text-xs uppercase tracking-[0.18em] text-emerald-300">Unitário na faixa</p>
+                <p class="mt-2 text-2xl font-semibold text-emerald-200">{{ orcamento.detalhes_json.calculo.valor_unitario_com_desconto_brl }}</p>
+            </div>
+            <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <p class="text-xs uppercase tracking-[0.18em] text-amber-300">Faixa aplicada</p>
+                <p class="mt-2 text-lg font-semibold text-amber-200">{{ orcamento.detalhes_json.desconto_quantidade.faixa }}</p>
+            </div>
+        </div>
+    </div>
+
+    <section class="grid gap-6 lg:grid-cols-2">
+        <article class="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+            <h2 class="text-lg font-semibold">Especificações</h2>
+            <dl class="mt-5 space-y-4 text-sm text-slate-300">
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Tamanho</dt>
+                    <dd>{{ orcamento.tamanho.nome }} ({{ orcamento.tamanho.base_mm }}x{{ orcamento.tamanho.altura_mm }} mm)</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Espessura</dt>
+                    <dd>{{ orcamento.espessura.milimetros }} mm</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Material</dt>
+                    <dd>{{ orcamento.material.tipo }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Tipo de base</dt>
+                    <dd>{{ orcamento.tipo_base.nome_base }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Quantidade</dt>
+                    <dd>{{ orcamento.quantidade }}</dd>
+                </div>
+            </dl>
+        </article>
+
+        <article class="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+            <h2 class="text-lg font-semibold">Memória de cálculo</h2>
+            <dl class="mt-5 space-y-4 text-sm text-slate-300">
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Área calculada</dt>
+                    <dd>{{ orcamento.detalhes_json.calculo.area_m2 }} m²</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Valor unitário base</dt>
+                    <dd>{{ orcamento.detalhes_json.calculo.valor_unitario_base_brl }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Valor unitário na faixa</dt>
+                    <dd>{{ orcamento.detalhes_json.calculo.valor_unitario_com_desconto_brl }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Subtotal sem desconto</dt>
+                    <dd>{{ orcamento.detalhes_json.calculo.subtotal_sem_desconto_brl }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Desconto aplicado</dt>
+                    <dd>{{ orcamento.detalhes_json.desconto_quantidade.percentual_desconto }}%</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt>Fator da base</dt>
+                    <dd>{{ orcamento.detalhes_json.tipo_base.fator_base }}</dd>
+                </div>
+            </dl>
+        </article>
+    </section>
+</section>
+{% endblock %}

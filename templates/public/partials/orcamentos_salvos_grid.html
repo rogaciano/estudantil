@@ -1,0 +1,80 @@
+<div id="orcamentos-salvos-grid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" {% if oob_swap %}
+    hx-swap-oob="outerHTML" {% endif %}>
+    {% for orcamento_salvo in orcamentos_salvos %}
+    <article class="rounded-xl border border-slate-800 bg-slate-950/70 p-5">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Orçamento</p>
+                <h3 class="mt-2 text-lg font-semibold text-slate-100">{{ orcamento_salvo.nome_orcamento }}</h3>
+                <p class="mt-1 text-sm text-slate-400">
+                    {{ orcamento_salvo.tamanho.nome }} • {{ orcamento_salvo.espessura.milimetros }} mm
+                </p>
+            </div>
+            <span
+                class="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200">
+                {{ orcamento_salvo.data_orcamento|date:"d/m/Y" }}
+            </span>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+            <div class="rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-4 py-3">
+                <p class="text-xs uppercase tracking-[0.18em] text-cyan-300">Valor total</p>
+                <p class="mt-2 text-xl font-semibold text-cyan-200">
+                    {{ orcamento_salvo.detalhes_json.calculo.valor_total_brl|default:orcamento_salvo.valor_total }}
+                </p>
+            </div>
+            <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                <p class="text-xs uppercase tracking-[0.18em] text-emerald-300">Unitário na faixa</p>
+                <p class="mt-2 text-xl font-semibold text-emerald-200">
+                    {{ orcamento_salvo.detalhes_json.calculo.valor_unitario_com_desconto_brl|default:"-" }}
+                </p>
+            </div>
+        </div>
+
+        <dl class="mt-5 space-y-3 text-sm text-slate-300">
+            <div class="flex items-center justify-between gap-4">
+                <dt>Quantidade</dt>
+                <dd>{{ orcamento_salvo.quantidade }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <dt>Tamanho</dt>
+                <dd>{{ orcamento_salvo.tamanho.nome }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <dt>Material</dt>
+                <dd>{{ orcamento_salvo.material.tipo }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <dt>Base</dt>
+                <dd>{{ orcamento_salvo.tipo_base.nome_base }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <dt>Faixa aplicada</dt>
+                <dd>{{ orcamento_salvo.detalhes_json.desconto_quantidade.faixa|default:"-" }}</dd>
+            </div>
+        </dl>
+
+        <div class="mt-5 flex flex-wrap gap-3">
+            <a
+                href="{% url 'public_orcamento_detail' orcamento_salvo.pk %}"
+                class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-cyan-400 hover:text-cyan-200"
+            >
+                Ver detalhes
+            </a>
+            <a
+                href="{% url 'public_orcamento_print' orcamento_salvo.pk %}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-white"
+            >
+                Imprimir
+            </a>
+        </div>
+    </article>
+    {% empty %}
+    <div
+        class="sm:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-slate-700 bg-slate-950/40 px-5 py-10 text-center text-sm text-slate-400">
+        Nenhum orçamento salvo ainda. Quando você registrar o primeiro, ele aparecerá aqui.
+    </div>
+    {% endfor %}
+</div>

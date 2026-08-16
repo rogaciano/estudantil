@@ -8,7 +8,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views import View
-from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from .forms import (
     AdminAuthenticationForm,
@@ -20,7 +20,7 @@ from .forms import (
     TamanhoForm,
     TipoBaseForm,
 )
-from .models import DescontoQuantidade, Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
+from .models import DescontoQuantidade, Espessura, FatorBaseTamanho, Material, Orcamento, Tamanho, TipoBase
 from .services.orcamentos import (
     DescontoQuantidadeNaoConfiguradoError,
     calcular_orcamento_catalogo_com_quantidade,
@@ -81,9 +81,48 @@ class PublicHomeView(TemplateView):
                 "form": OrcamentoPublicoForm(
                     initial={"data_orcamento": data_orcamento}
                 ),
+                "orcamentos_salvos": self.get_orcamentos_salvos(),
             }
         )
         return context
+
+    @staticmethod
+    def get_orcamentos_salvos():
+        return Orcamento.objects.select_related(
+            "tamanho",
+            "material",
+            "espessura",
+            "tipo_base",
+        ).order_by("data_orcamento", "id")
+
+
+class OrcamentoPublicoQuerysetMixin:
+    @staticmethod
+    def get_orcamentos_queryset():
+        return Orcamento.objects.select_related(
+            "tamanho",
+            "espessura",
+            "material",
+            "tipo_base",
+        )
+
+
+class OrcamentoPublicoDetailView(OrcamentoPublicoQuerysetMixin, DetailView):
+    model = Orcamento
+    template_name = "public/orcamento_detail.html"
+    context_object_name = "orcamento"
+
+    def get_queryset(self):
+        return self.get_orcamentos_queryset()
+
+
+class OrcamentoPublicoPrintView(OrcamentoPublicoQuerysetMixin, DetailView):
+    model = Orcamento
+    template_name = "public/orcamento_print.html"
+    context_object_name = "orcamento"
+
+    def get_queryset(self):
+        return self.get_orcamentos_queryset()
 
 
 class OrcamentoHtmxBaseView(View):
@@ -97,6 +136,7 @@ class OrcamentoHtmxBaseView(View):
                 "form": form,
                 "resultado": resultado,
                 "orcamento": orcamento,
+                "orcamentos_salvos": PublicHomeView.get_orcamentos_salvos(),
             },
         )
 

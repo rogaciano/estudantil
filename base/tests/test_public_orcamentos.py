@@ -72,6 +72,112 @@ class PublicOrcamentoFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'hx-sync="this:replace"', html=False)
+        self.assertContains(response, "Orçamentos salvos")
+        self.assertContains(response, "Nenhum orçamento salvo ainda")
+
+    def test_home_lista_orcamentos_salvos_do_mais_antigo_para_o_mais_novo(self):
+        Orcamento.objects.create(
+            nome_orcamento="Primeiro orçamento",
+            data_orcamento="2026-08-10",
+            tamanho=self.tamanho_a4,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=1,
+            valor_total="70.17",
+            detalhes_json={"calculo": {"valor_total_brl": "R$ 70,17"}},
+        )
+        Orcamento.objects.create(
+            nome_orcamento="Segundo orçamento",
+            data_orcamento="2026-08-12",
+            tamanho=self.tamanho_a3,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=2,
+            valor_total="336.80",
+            detalhes_json={"calculo": {"valor_total_brl": "R$ 336,80"}},
+        )
+
+        response = self.client.get(reverse("public_home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Primeiro orçamento")
+        self.assertContains(response, "Segundo orçamento")
+        self.assertContains(response, "Ver detalhes")
+        self.assertContains(response, "Imprimir")
+        self.assertLess(
+            response.content.decode().index("Primeiro orçamento"),
+            response.content.decode().index("Segundo orçamento"),
+        )
+
+    def test_detail_view_exibe_memoria_completa_do_orcamento(self):
+        orcamento = Orcamento.objects.create(
+            nome_orcamento="Totem Premium",
+            data_orcamento="2026-08-16",
+            tamanho=self.tamanho_a4,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=15,
+            valor_total="999.90",
+            detalhes_json={
+                "desconto_quantidade": {
+                    "faixa": "11 a 20 unidades",
+                    "percentual_desconto": "5.00",
+                },
+                "tipo_base": {"fator_base": "1.50"},
+                "calculo": {
+                    "area_m2": "0.062370",
+                    "valor_total_brl": "R$ 999,90",
+                    "valor_unitario_base_brl": "R$ 70,17",
+                    "valor_unitario_com_desconto_brl": "R$ 66,66",
+                    "subtotal_sem_desconto_brl": "R$ 1.052,55",
+                },
+            },
+        )
+
+        response = self.client.get(reverse("public_orcamento_detail", args=[orcamento.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Totem Premium")
+        self.assertContains(response, "R$ 999,90")
+        self.assertContains(response, "11 a 20 unidades")
+        self.assertContains(response, "R$ 66,66")
+        self.assertContains(response, "Imprimir")
+
+    def test_print_view_exibe_layout_pronto_para_impressao(self):
+        orcamento = Orcamento.objects.create(
+            nome_orcamento="Totem Impressão",
+            data_orcamento="2026-08-16",
+            tamanho=self.tamanho_a4,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=5,
+            valor_total="350.85",
+            detalhes_json={
+                "desconto_quantidade": {
+                    "faixa": "1 a 10 unidades",
+                    "percentual_desconto": "0.00",
+                },
+                "calculo": {
+                    "area_m2": "0.062370",
+                    "valor_total_brl": "R$ 350,85",
+                    "valor_unitario_base_brl": "R$ 70,17",
+                    "valor_unitario_com_desconto_brl": "R$ 70,17",
+                    "subtotal_sem_desconto_brl": "R$ 350,85",
+                },
+            },
+        )
+
+        response = self.client.get(reverse("public_orcamento_print", args=[orcamento.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Imprimir / Salvar em PDF")
+        self.assertContains(response, "window.print()")
+        self.assertContains(response, "Totem Impressão")
+        self.assertContains(response, "R$ 350,85")
 
     def test_calculo_htmx_retorna_total_formatado(self):
         response = self.client.post(
@@ -206,3 +312,6 @@ class PublicOrcamentoFlowTests(TestCase):
         )
         self.assertContains(response, "registrado com sucesso")
         self.assertContains(response, "R$ 70,17")
+        self.assertContains(response, 'id="orcamentos-salvos-grid"', html=False)
+        self.assertContains(response, 'hx-swap-oob="outerHTML"', html=False)
+        self.assertContains(response, "Totem Recepção")
