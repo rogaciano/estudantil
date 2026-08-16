@@ -74,6 +74,7 @@ class PublicOrcamentoFlowTests(TestCase):
         self.assertContains(response, 'hx-sync="this:replace"', html=False)
         self.assertContains(response, "Orçamentos salvos")
         self.assertContains(response, "Nenhum orçamento salvo ainda")
+        self.assertContains(response, "Buscar por nome")
 
     def test_home_lista_orcamentos_salvos_do_mais_antigo_para_o_mais_novo(self):
         Orcamento.objects.create(
@@ -110,6 +111,67 @@ class PublicOrcamentoFlowTests(TestCase):
             response.content.decode().index("Primeiro orçamento"),
             response.content.decode().index("Segundo orçamento"),
         )
+
+    def test_home_pagina_historico_publico(self):
+        for index in range(12):
+            Orcamento.objects.create(
+                nome_orcamento=f"Orçamento {index:02d}",
+                data_orcamento=f"2026-08-{index + 1:02d}",
+                tamanho=self.tamanho_a4,
+                espessura=self.espessura,
+                material=self.material,
+                tipo_base=self.tipo_base,
+                quantidade=1,
+                valor_total="70.17",
+                detalhes_json={"calculo": {"valor_total_brl": "R$ 70,17"}},
+            )
+
+        primeira_pagina = self.client.get(reverse("public_home"))
+        segunda_pagina = self.client.get(reverse("public_home"), {"page": 2})
+
+        self.assertContains(primeira_pagina, "Página 1 de 2")
+        self.assertContains(primeira_pagina, "Próxima")
+        self.assertContains(primeira_pagina, "Orçamento 00")
+        self.assertContains(primeira_pagina, "Orçamento 08")
+        self.assertNotContains(primeira_pagina, "Orçamento 09")
+
+        self.assertContains(segunda_pagina, "Página 2 de 2")
+        self.assertContains(segunda_pagina, "Anterior")
+        self.assertContains(segunda_pagina, "Orçamento 09")
+        self.assertContains(segunda_pagina, "Orçamento 11")
+        self.assertNotContains(segunda_pagina, "Orçamento 00")
+
+    def test_home_filtra_historico_por_nome(self):
+        Orcamento.objects.create(
+            nome_orcamento="Totem Recepção",
+            data_orcamento="2026-08-10",
+            tamanho=self.tamanho_a4,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=1,
+            valor_total="70.17",
+            detalhes_json={"calculo": {"valor_total_brl": "R$ 70,17"}},
+        )
+        Orcamento.objects.create(
+            nome_orcamento="Display de Mesa",
+            data_orcamento="2026-08-12",
+            tamanho=self.tamanho_a3,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=2,
+            valor_total="336.80",
+            detalhes_json={"calculo": {"valor_total_brl": "R$ 336,80"}},
+        )
+
+        response = self.client.get(reverse("public_home"), {"q": "Recepção"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="Recepção"', html=False)
+        self.assertContains(response, "Totem Recepção")
+        self.assertNotContains(response, "Display de Mesa")
+        self.assertContains(response, "Limpar busca")
 
     def test_detail_view_exibe_memoria_completa_do_orcamento(self):
         orcamento = Orcamento.objects.create(
@@ -312,6 +374,6 @@ class PublicOrcamentoFlowTests(TestCase):
         )
         self.assertContains(response, "registrado com sucesso")
         self.assertContains(response, "R$ 70,17")
-        self.assertContains(response, 'id="orcamentos-salvos-grid"', html=False)
+        self.assertContains(response, 'id="orcamentos-salvos-section"', html=False)
         self.assertContains(response, 'hx-swap-oob="outerHTML"', html=False)
         self.assertContains(response, "Totem Recepção")

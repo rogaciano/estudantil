@@ -1,0 +1,66 @@
+<div id="orcamentos-salvos-section"{% if oob_swap %} hx-swap-oob="outerHTML"{% endif %}>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-[0.2em] text-cyan-400">Histórico público</p>
+            <h2 class="mt-2 text-2xl font-semibold tracking-tight">Orçamentos salvos</h2>
+        </div>
+        <p class="text-sm text-slate-400">Ordenados do mais antigo para o mais novo.</p>
+    </div>
+
+    <form method="get" action="{% url 'public_home' %}" class="mt-6 grid gap-4 lg:grid-cols-[1fr_auto_auto]">
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-200">Buscar por nome</span>
+            <input
+                type="text"
+                name="q"
+                value="{{ history_query }}"
+                placeholder="Ex.: Totem recepção"
+                class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
+            >
+        </label>
+        <button
+            type="submit"
+            class="self-end inline-flex items-center justify-center rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+        >
+            Buscar
+        </button>
+        {% if history_query %}
+            <a
+                href="{% url 'public_home' %}"
+                class="self-end inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-medium text-slate-100 transition hover:border-slate-500"
+            >
+                Limpar busca
+            </a>
+        {% endif %}
+    </form>
+
+    <div class="mt-6">
+        {% include "public/partials/orcamentos_salvos_grid.html" %}
+    </div>
+
+    {% if orcamentos_page.paginator.num_pages > 1 %}
+        <nav class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-slate-400">
+                Página {{ orcamentos_page.number }} de {{ orcamentos_page.paginator.num_pages }}
+            </p>
+            <div class="flex flex-wrap gap-3">
+                {% if orcamentos_page.has_previous %}
+                    <a
+                        href="{% url 'public_home' %}?page={{ orcamentos_page.previous_page_number }}{% if history_query %}&q={{ history_query|urlencode }}{% endif %}"
+                        class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-cyan-400 hover:text-cyan-200"
+                    >
+                        Anterior
+                    </a>
+                {% endif %}
+                {% if orcamentos_page.has_next %}
+                    <a
+                        href="{% url 'public_home' %}?page={{ orcamentos_page.next_page_number }}{% if history_query %}&q={{ history_query|urlencode }}{% endif %}"
+                        class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-cyan-400 hover:text-cyan-200"
+                    >
+                        Próxima
+                    </a>
+                {% endif %}
+            </div>
+        </nav>
+    {% endif %}
+</div>

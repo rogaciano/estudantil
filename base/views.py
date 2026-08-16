@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db.models.deletion import ProtectedError
+from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -81,9 +82,9 @@ class PublicHomeView(TemplateView):
                 "form": OrcamentoPublicoForm(
                     initial={"data_orcamento": data_orcamento}
                 ),
-                "orcamentos_salvos": self.get_orcamentos_salvos(),
             }
         )
+        context.update(self.get_historico_context(self.request))
         return context
 
     @staticmethod
@@ -94,6 +95,27 @@ class PublicHomeView(TemplateView):
             "espessura",
             "tipo_base",
         ).order_by("data_orcamento", "id")
+
+    def get_historico_context(self, request):
+        history_query = self.get_history_query(request)
+        history_page = request.GET.get("page") or request.POST.get("history_page") or 1
+        queryset = self.get_orcamentos_salvos()
+
+        if history_query:
+            queryset = queryset.filter(nome_orcamento__icontains=history_query)
+
+        paginator = Paginator(queryset, 9)
+        page_obj = paginator.get_page(history_page)
+
+        return {
+            "orcamentos_salvos": page_obj.object_list,
+            "orcamentos_page": page_obj,
+            "history_query": history_query,
+        }
+
+    @staticmethod
+    def get_history_query(request):
+        return (request.GET.get("q") or request.POST.get("history_q") or "").strip()
 
 
 class OrcamentoPublicoQuerysetMixin:
@@ -136,7 +158,7 @@ class OrcamentoHtmxBaseView(View):
                 "form": form,
                 "resultado": resultado,
                 "orcamento": orcamento,
-                "orcamentos_salvos": PublicHomeView.get_orcamentos_salvos(),
+                **PublicHomeView().get_historico_context(request),
             },
         )
 

@@ -17,6 +17,8 @@
             hx-trigger="change delay:250ms, submit" hx-sync="this:replace">
             {% csrf_token %}
             {{ form.data_orcamento }}
+            <input type="hidden" name="history_q" value="{{ history_query }}">
+            <input type="hidden" name="history_page" value="{{ orcamentos_page.number|default:1 }}">
             <label class="block">
                 <span class="mb-2 block text-sm font-medium text-slate-200">Nome do orçamento</span>
                 {{ form.nome_orcamento }}
@@ -69,16 +71,6 @@
 </section>
 
 <section class="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-    <div class="flex items-center justify-between gap-4">
-        <div>
-            <p class="text-sm uppercase tracking-[0.2em] text-cyan-400">Histórico público</p>
-            <h2 class="mt-2 text-2xl font-semibold tracking-tight">Orçamentos salvos</h2>
-        </div>
-        <p class="text-sm text-slate-400">Ordenados do mais antigo para o mais novo.</p>
-    </div>
-
-    <div class="mt-6">
-        {% include "public/partials/orcamentos_salvos_grid.html" %}
-    </div>
+    {% include "public/partials/orcamentos_salvos_section.html" %}
 </section>
 {% endblock %}
