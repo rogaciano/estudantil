@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
@@ -10,6 +12,7 @@ from django.views.generic import CreateView, DeleteView, ListView, TemplateView,
 
 from .forms import (
     AdminAuthenticationForm,
+    DescontoQuantidadeForm,
     EspessuraForm,
     FatorBaseTamanhoForm,
     MaterialForm,
@@ -17,8 +20,12 @@ from .forms import (
     TamanhoForm,
     TipoBaseForm,
 )
-from .models import Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
-from .services.orcamentos import calcular_orcamento_catalogo, registrar_orcamento_calculado
+from .models import DescontoQuantidade, Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
+from .services.orcamentos import (
+    DescontoQuantidadeNaoConfiguradoError,
+    calcular_orcamento_catalogo_com_quantidade,
+    registrar_orcamento_calculado,
+)
 
 
 def get_admin_sections():
@@ -52,6 +59,12 @@ def get_admin_sections():
             "label": "Fatores por tamanho",
             "description": "Relação entre tipo de base, tamanho e fator usado no cálculo.",
             "url_name": "admin_fator_base_tamanho_list",
+        },
+        {
+            "key": "descontos-quantidade",
+            "label": "Descontos por quantidade",
+            "description": "Faixas de desconto aplicadas conforme a quantidade escolhida.",
+            "url_name": "admin_desconto_quantidade_list",
         },
     ]
 
@@ -93,12 +106,16 @@ class OrcamentoCalcularView(OrcamentoHtmxBaseView):
         form = OrcamentoPublicoForm(request.POST)
         resultado = None
         if form.is_valid():
-            resultado = calcular_orcamento_catalogo(
-                tamanho=form.cleaned_data["tamanho"],
-                espessura=form.cleaned_data["espessura"],
-                material=form.cleaned_data["material"],
-                tipo_base=form.cleaned_data["tipo_base"],
-            )
+            try:
+                resultado = calcular_orcamento_catalogo_com_quantidade(
+                    tamanho=form.cleaned_data["tamanho"],
+                    espessura=form.cleaned_data["espessura"],
+                    material=form.cleaned_data["material"],
+                    tipo_base=form.cleaned_data["tipo_base"],
+                    quantidade=form.cleaned_data["quantidade"],
+                )
+            except DescontoQuantidadeNaoConfiguradoError as exc:
+                form.add_error(None, str(exc))
         return self.render_resultado(request, form=form, resultado=resultado)
 
 
@@ -108,14 +125,18 @@ class OrcamentoSalvarView(OrcamentoHtmxBaseView):
         resultado = None
         orcamento = None
         if form.is_valid():
-            orcamento, resultado = registrar_orcamento_calculado(
-                nome_orcamento=form.cleaned_data["nome_orcamento"],
-                data_orcamento=form.cleaned_data["data_orcamento"],
-                tamanho=form.cleaned_data["tamanho"],
-                espessura=form.cleaned_data["espessura"],
-                material=form.cleaned_data["material"],
-                tipo_base=form.cleaned_data["tipo_base"],
-            )
+            try:
+                orcamento, resultado = registrar_orcamento_calculado(
+                    nome_orcamento=form.cleaned_data["nome_orcamento"],
+                    data_orcamento=form.cleaned_data["data_orcamento"],
+                    tamanho=form.cleaned_data["tamanho"],
+                    espessura=form.cleaned_data["espessura"],
+                    material=form.cleaned_data["material"],
+                    tipo_base=form.cleaned_data["tipo_base"],
+                    quantidade=form.cleaned_data["quantidade"],
+                )
+            except DescontoQuantidadeNaoConfiguradoError as exc:
+                form.add_error(None, str(exc))
         return self.render_resultado(
             request,
             form=form,
@@ -205,6 +226,12 @@ class AdminDashboardView(AdminStaffRequiredMixin, AdminBaseContextMixin, Templat
                 "description": "Defina o fator de cada tipo de base para cada tamanho.",
                 "count": FatorBaseTamanho.objects.count(),
                 "url_name": "admin_fator_base_tamanho_list",
+            },
+            {
+                "label": "Descontos por quantidade",
+                "description": "Configure as faixas comerciais aplicadas no valor unitário.",
+                "count": DescontoQuantidade.objects.count(),
+                "url_name": "admin_desconto_quantidade_list",
             },
         ]
         return context
@@ -608,3 +635,67 @@ class FatorBaseTamanhoDeleteView(AdminCatalogDeleteView):
     protected_message = (
         "Este fator está vinculado a orçamentos e não pode ser excluído."
     )
+
+
+class DescontoQuantidadeListView(AdminCatalogListView):
+    model = DescontoQuantidade
+    resource_name_plural = "Descontos por quantidade"
+    resource_name_singular = "desconto por quantidade"
+    section_key = "descontos-quantidade"
+    list_url_name = "admin_desconto_quantidade_list"
+    create_url_name = "admin_desconto_quantidade_create"
+    edit_url_name = "admin_desconto_quantidade_update"
+    delete_url_name = "admin_desconto_quantidade_delete"
+    columns = ["Faixa", "Fator", "Desconto"]
+
+    def get_row_cells(self, obj):
+        faixa = f"{obj.quantidade_min}+"
+        if obj.quantidade_max:
+            faixa = f"{obj.quantidade_min} a {obj.quantidade_max}"
+        desconto_percentual = (
+            (Decimal("1.00") - obj.fator_desconto) * Decimal("100")
+        ).quantize(Decimal("1"))
+        return [faixa, f"{obj.fator_desconto:.2f}".replace(".", ","), f"{desconto_percentual}%"]
+
+
+class DescontoQuantidadeCreateView(AdminCatalogFormMixin, CreateView):
+    model = DescontoQuantidade
+    form_class = DescontoQuantidadeForm
+    resource_name_plural = "Descontos por quantidade"
+    resource_name_singular = "desconto por quantidade"
+    section_key = "descontos-quantidade"
+    list_url_name = "admin_desconto_quantidade_list"
+    create_url_name = "admin_desconto_quantidade_create"
+    edit_url_name = "admin_desconto_quantidade_update"
+    delete_url_name = "admin_desconto_quantidade_delete"
+    page_title = "Novo desconto por quantidade"
+    submit_label = "Criar desconto"
+    success_message = "Desconto por quantidade criado com sucesso."
+
+
+class DescontoQuantidadeUpdateView(AdminCatalogFormMixin, UpdateView):
+    model = DescontoQuantidade
+    form_class = DescontoQuantidadeForm
+    resource_name_plural = "Descontos por quantidade"
+    resource_name_singular = "desconto por quantidade"
+    section_key = "descontos-quantidade"
+    list_url_name = "admin_desconto_quantidade_list"
+    create_url_name = "admin_desconto_quantidade_create"
+    edit_url_name = "admin_desconto_quantidade_update"
+    delete_url_name = "admin_desconto_quantidade_delete"
+    page_title = "Editar desconto por quantidade"
+    submit_label = "Salvar alterações"
+    success_message = "Desconto por quantidade atualizado com sucesso."
+
+
+class DescontoQuantidadeDeleteView(AdminCatalogDeleteView):
+    model = DescontoQuantidade
+    resource_name_plural = "Descontos por quantidade"
+    resource_name_singular = "desconto por quantidade"
+    section_key = "descontos-quantidade"
+    list_url_name = "admin_desconto_quantidade_list"
+    create_url_name = "admin_desconto_quantidade_create"
+    edit_url_name = "admin_desconto_quantidade_update"
+    delete_url_name = "admin_desconto_quantidade_delete"
+    success_message = "Desconto por quantidade \"{item}\" excluído com sucesso."
+    protected_message = "Este desconto não pode ser excluído no momento."

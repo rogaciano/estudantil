@@ -90,6 +90,32 @@ class FatorBaseTamanho(models.Model):
         return f"{self.tipo_base.nome_base} - {self.tamanho.nome} ({self.fator_base})"
 
 
+class DescontoQuantidade(models.Model):
+    quantidade_min = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    quantidade_max = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Deixe em branco para uma faixa sem limite superior.",
+    )
+    fator_desconto = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+
+    class Meta:
+        db_table = "descontos_quantidade"
+        ordering = ["quantidade_min", "id"]
+
+    def __str__(self) -> str:
+        if self.quantidade_max:
+            faixa = f"{self.quantidade_min} a {self.quantidade_max}"
+        else:
+            faixa = f"{self.quantidade_min}+"
+        return f"{faixa} ({self.fator_desconto})"
+
+
 class Orcamento(models.Model):
     nome_orcamento = models.CharField(max_length=120)
     data_orcamento = models.DateField(default=timezone.localdate)
@@ -112,6 +138,10 @@ class Orcamento(models.Model):
         TipoBase,
         on_delete=models.PROTECT,
         related_name="orcamentos",
+    )
+    quantidade = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)],
     )
     valor_total = models.DecimalField(
         max_digits=12,

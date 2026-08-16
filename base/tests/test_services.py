@@ -16,6 +16,8 @@ class OrcamentoServiceTests(SimpleTestCase):
         )
 
         self.assertEqual(resultado.area_m2, Decimal("0.062370"))
+        self.assertEqual(resultado.quantidade, 1)
+        self.assertEqual(resultado.valor_unitario_base, Decimal("70.17"))
         self.assertEqual(resultado.valor_total, Decimal("70.17"))
         self.assertEqual(resultado.valor_total_brl, "R$ 70,17")
 

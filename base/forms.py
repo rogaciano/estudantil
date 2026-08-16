@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
+from .models import DescontoQuantidade, Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
 from .services.orcamentos import FatorBaseNaoConfiguradoError, obter_fator_base_por_tamanho
 
 
@@ -61,6 +61,19 @@ class OrcamentoPublicoForm(forms.Form):
         queryset=TipoBase.objects.none(),
         empty_label="Selecione um tipo de base",
         widget=forms.Select(attrs={"class": INPUT_CLASSES}),
+    )
+    quantidade = forms.IntegerField(
+        label="Quantidade",
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(
+            attrs={
+                "class": INPUT_CLASSES,
+                "placeholder": "Ex.: 10",
+                "min": "1",
+                "step": "1",
+            }
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -164,3 +177,26 @@ class FatorBaseTamanhoForm(AdminModelForm):
             "tamanho": "Tamanho",
             "fator_base": "Fator multiplicador",
         }
+
+
+class DescontoQuantidadeForm(AdminModelForm):
+    class Meta:
+        model = DescontoQuantidade
+        fields = ["quantidade_min", "quantidade_max", "fator_desconto"]
+        labels = {
+            "quantidade_min": "Quantidade mínima",
+            "quantidade_max": "Quantidade máxima",
+            "fator_desconto": "Fator de desconto",
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        quantidade_min = cleaned_data.get("quantidade_min")
+        quantidade_max = cleaned_data.get("quantidade_max")
+
+        if quantidade_min and quantidade_max and quantidade_max < quantidade_min:
+            raise ValidationError(
+                "A quantidade máxima deve ser maior ou igual à quantidade mínima."
+            )
+
+        return cleaned_data

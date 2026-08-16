@@ -2,7 +2,14 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
-from base.models import Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
+from base.models import (
+    DescontoQuantidade,
+    Espessura,
+    FatorBaseTamanho,
+    Material,
+    Tamanho,
+    TipoBase,
+)
 
 
 class Command(BaseCommand):
@@ -24,6 +31,11 @@ class Command(BaseCommand):
             {"nome_base": "Base Simples", "fator_padrao": Decimal("1.00")},
             {"nome_base": "Base Reforçada", "fator_padrao": Decimal("1.50")},
         ]
+        descontos_quantidade = [
+            {"quantidade_min": 1, "quantidade_max": 10, "fator_desconto": Decimal("1.00")},
+            {"quantidade_min": 11, "quantidade_max": 20, "fator_desconto": Decimal("0.95")},
+            {"quantidade_min": 21, "quantidade_max": None, "fator_desconto": Decimal("0.90")},
+        ]
 
         for tamanho in tamanhos:
             Tamanho.objects.update_or_create(nome=tamanho["nome"], defaults=tamanho)
@@ -44,5 +56,12 @@ class Command(BaseCommand):
                     tamanho=tamanho_obj,
                     defaults={"fator_base": tipo_base["fator_padrao"]},
                 )
+
+        for desconto in descontos_quantidade:
+            DescontoQuantidade.objects.update_or_create(
+                quantidade_min=desconto["quantidade_min"],
+                quantidade_max=desconto["quantidade_max"],
+                defaults={"fator_desconto": desconto["fator_desconto"]},
+            )
 
         self.stdout.write(self.style.SUCCESS("Catalogo inicial populado com sucesso."))

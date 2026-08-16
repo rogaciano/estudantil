@@ -12,15 +12,9 @@
             aparece na lateral sem recarregar a página inteira.
         </p>
 
-        <form
-            id="calculadora-form"
-            class="mt-8 grid gap-4 md:grid-cols-2"
-            hx-post="{% url 'public_orcamento_calcular' %}"
-            hx-target="#resultado-orcamento"
-            hx-swap="outerHTML"
-            hx-trigger="change delay:250ms, submit"
-            hx-sync="this:replace"
-        >
+        <form id="calculadora-form" class="mt-8 grid gap-4 md:grid-cols-2"
+            hx-post="{% url 'public_orcamento_calcular' %}" hx-target="#resultado-orcamento" hx-swap="outerHTML"
+            hx-trigger="change delay:250ms, submit" hx-sync="this:replace">
             {% csrf_token %}
             {{ form.data_orcamento }}
             <label class="block">
@@ -30,12 +24,8 @@
 
             <label class="block">
                 <span class="mb-2 block text-sm font-medium text-slate-200">Data</span>
-                <input
-                    type="text"
-                    value="{{ data_orcamento|date:'d/m/Y' }}"
-                    readonly
-                    class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-400"
-                >
+                <input type="text" value="{{ data_orcamento|date:'d/m/Y' }}" readonly
+                    class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-400">
             </label>
 
             <label class="block">
@@ -58,11 +48,14 @@
                 {{ form.tipo_base }}
             </label>
 
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-200">Quantidade</span>
+                {{ form.quantidade }}
+            </label>
+
             <div class="md:col-span-2">
-                <button
-                    type="submit"
-                    class="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
-                >
+                <button type="submit"
+                    class="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">
                     Calcular
                 </button>
             </div>

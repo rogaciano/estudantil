@@ -5,7 +5,15 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from base.models import Espessura, FatorBaseTamanho, Material, Orcamento, Tamanho, TipoBase
+from base.models import (
+    DescontoQuantidade,
+    Espessura,
+    FatorBaseTamanho,
+    Material,
+    Orcamento,
+    Tamanho,
+    TipoBase,
+)
 
 
 class AdminViewsTests(TestCase):
@@ -34,6 +42,11 @@ class AdminViewsTests(TestCase):
             tamanho=self.tamanho,
             fator_base=Decimal("1.00"),
         )
+        self.desconto = DescontoQuantidade.objects.create(
+            quantidade_min=1,
+            quantidade_max=10,
+            fator_desconto=Decimal("1.00"),
+        )
 
     def login_staff(self):
         self.client.force_login(self.staff_user)
@@ -46,6 +59,7 @@ class AdminViewsTests(TestCase):
             reverse("admin_material_list"),
             reverse("admin_tipo_base_list"),
             reverse("admin_fator_base_tamanho_list"),
+            reverse("admin_desconto_quantidade_list"),
         ]
 
         for url in protected_urls:
@@ -78,6 +92,7 @@ class AdminViewsTests(TestCase):
             reverse("admin_material_list"),
             reverse("admin_tipo_base_list"),
             reverse("admin_fator_base_tamanho_list"),
+            reverse("admin_desconto_quantidade_list"),
         ]
 
         for url in urls:
@@ -123,6 +138,7 @@ class AdminViewsTests(TestCase):
             espessura=self.espessura,
             material=self.material,
             tipo_base=self.tipo_base,
+            quantidade=1,
             valor_total=Decimal("70.17"),
             detalhes_json={"snapshot": True},
         )
@@ -167,3 +183,33 @@ class AdminViewsTests(TestCase):
         self.assertContains(update_response, "Fator por tamanho atualizado com sucesso.")
         fator.refresh_from_db()
         self.assertEqual(fator.fator_base, Decimal("1.40"))
+
+    def test_staff_user_can_manage_desconto_por_quantidade(self):
+        self.login_staff()
+
+        create_response = self.client.post(
+            reverse("admin_desconto_quantidade_create"),
+            {
+                "quantidade_min": 31,
+                "quantidade_max": 40,
+                "fator_desconto": "0.88",
+            },
+            follow=True,
+        )
+        self.assertContains(create_response, "Desconto por quantidade criado com sucesso.")
+        desconto = DescontoQuantidade.objects.get(quantidade_min=31, quantidade_max=40)
+        self.assertEqual(desconto.fator_desconto, Decimal("0.88"))
+
+        update_response = self.client.post(
+            reverse("admin_desconto_quantidade_update", args=[desconto.pk]),
+            {
+                "quantidade_min": 31,
+                "quantidade_max": 45,
+                "fator_desconto": "0.93",
+            },
+            follow=True,
+        )
+        self.assertContains(update_response, "Desconto por quantidade atualizado com sucesso.")
+        desconto.refresh_from_db()
+        self.assertEqual(desconto.quantidade_max, 45)
+        self.assertEqual(desconto.fator_desconto, Decimal("0.93"))

@@ -1,7 +1,15 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from base.models import Espessura, FatorBaseTamanho, Material, Orcamento, Tamanho, TipoBase
+from base.models import (
+    DescontoQuantidade,
+    Espessura,
+    FatorBaseTamanho,
+    Material,
+    Orcamento,
+    Tamanho,
+    TipoBase,
+)
 
 
 class PublicOrcamentoFlowTests(TestCase):
@@ -34,6 +42,21 @@ class PublicOrcamentoFlowTests(TestCase):
             tamanho=self.tamanho_a3,
             fator_base="1.80",
         )
+        DescontoQuantidade.objects.create(
+            quantidade_min=1,
+            quantidade_max=10,
+            fator_desconto="1.00",
+        )
+        DescontoQuantidade.objects.create(
+            quantidade_min=11,
+            quantidade_max=20,
+            fator_desconto="0.95",
+        )
+        DescontoQuantidade.objects.create(
+            quantidade_min=21,
+            quantidade_max=None,
+            fator_desconto="0.90",
+        )
         self.payload = {
             "nome_orcamento": "Totem Recepção",
             "data_orcamento": "2026-08-15",
@@ -41,6 +64,7 @@ class PublicOrcamentoFlowTests(TestCase):
             "espessura": str(self.espessura.id),
             "material": str(self.material.id),
             "tipo_base": str(self.tipo_base.id),
+            "quantidade": "1",
         }
 
     def test_home_configura_htmx_para_priorizar_estado_atual_do_formulario(self):
@@ -59,6 +83,8 @@ class PublicOrcamentoFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="resultado-orcamento"', html=False)
         self.assertContains(response, "R$ 70,17")
+        self.assertContains(response, "Valor unitário na faixa")
+        self.assertContains(response, "1 unidade")
         self.assertContains(response, "0,062370 m²")
         self.assertContains(response, "Salvar orçamento")
 
@@ -80,6 +106,27 @@ class PublicOrcamentoFlowTests(TestCase):
         self.assertNotContains(response, "R$ 70,17")
         self.assertNotContains(response, "0,062370 m²")
 
+    def test_calculo_htmx_aplica_desconto_por_faixa_e_mostra_proxima_faixa(self):
+        payload_com_faixa = {
+            **self.payload,
+            "quantidade": "15",
+        }
+
+        response = self.client.post(
+            reverse("public_orcamento_calcular"),
+            data=payload_com_faixa,
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "15 unidades")
+        self.assertContains(response, "11 a 20 unidades")
+        self.assertContains(response, "R$ 66,66")
+        self.assertContains(response, "R$ 999,90")
+        self.assertContains(response, "Ao entrar na faixa")
+        self.assertContains(response, "21+ unidades")
+        self.assertContains(response, "R$ 63,15")
+
     def test_calculo_htmx_exibe_erros_amigaveis(self):
         response = self.client.post(
             reverse("public_orcamento_calcular"),
@@ -94,6 +141,7 @@ class PublicOrcamentoFlowTests(TestCase):
         self.assertContains(response, "Espessura")
         self.assertContains(response, "Material")
         self.assertContains(response, "Tipo de base")
+        self.assertContains(response, "Quantidade")
 
     def test_salvamento_htmx_persiste_orcamento_com_snapshot(self):
         response = self.client.post(
@@ -108,6 +156,7 @@ class PublicOrcamentoFlowTests(TestCase):
         orcamento = Orcamento.objects.get()
         self.assertEqual(orcamento.nome_orcamento, "Totem Recepção")
         self.assertEqual(str(orcamento.data_orcamento), "2026-08-15")
+        self.assertEqual(orcamento.quantidade, 1)
         self.assertEqual(str(orcamento.valor_total), "70.17")
         self.assertEqual(
             orcamento.detalhes_json,
@@ -136,8 +185,20 @@ class PublicOrcamentoFlowTests(TestCase):
                         tamanho=self.tamanho_a4
                     ).id,
                 },
+                "quantidade": 1,
+                "desconto_quantidade": {
+                    "faixa": "1 a 10 unidades",
+                    "fator_desconto": "1.00",
+                    "percentual_desconto": "0.00",
+                },
                 "calculo": {
                     "area_m2": "0.062370",
+                    "valor_unitario_base": "70.17",
+                    "valor_unitario_base_brl": "R$ 70,17",
+                    "valor_unitario_com_desconto": "70.17",
+                    "valor_unitario_com_desconto_brl": "R$ 70,17",
+                    "subtotal_sem_desconto": "70.17",
+                    "subtotal_sem_desconto_brl": "R$ 70,17",
                     "valor_total": "70.17",
                     "valor_total_brl": "R$ 70,17",
                 },
