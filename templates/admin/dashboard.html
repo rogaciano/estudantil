@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin | Calculadora de Placas{% endblock %}
+{% block title %}Admin | Gráfica Estudantil - Calculadora de Placas{% endblock %}
 
 {% block content %}
 <section class="space-y-8">
@@ -17,14 +17,15 @@
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {% for card in cards %}
-            <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-                <p class="text-sm text-slate-400">{{ card.count }} registro{{ card.count|pluralize }}</p>
-                <h2 class="mt-2 text-lg font-semibold">{{ card.label }}</h2>
-                <p class="mt-2 text-sm text-slate-300">{{ card.description }}</p>
-                <a href="{% url card.url_name %}" class="mt-5 inline-flex items-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-slate-800">
-                    Abrir cadastro
-                </a>
-            </article>
+        <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+            <p class="text-sm text-slate-400">{{ card.count }} registro{{ card.count|pluralize }}</p>
+            <h2 class="mt-2 text-lg font-semibold">{{ card.label }}</h2>
+            <p class="mt-2 text-sm text-slate-300">{{ card.description }}</p>
+            <a href="{% url card.url_name %}"
+                class="mt-5 inline-flex items-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-slate-800">
+                Abrir cadastro
+            </a>
+        </article>
         {% endfor %}
     </div>
 </section>

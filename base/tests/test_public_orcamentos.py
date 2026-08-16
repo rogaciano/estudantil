@@ -240,6 +240,7 @@ class PublicOrcamentoFlowTests(TestCase):
         self.assertContains(response, "window.print()")
         self.assertContains(response, "Totem Impressão")
         self.assertContains(response, "R$ 350,85")
+        self.assertContains(response, "static/img/logo.png")
 
     def test_calculo_htmx_retorna_total_formatado(self):
         response = self.client.post(
