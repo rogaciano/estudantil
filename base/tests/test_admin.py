@@ -54,6 +54,7 @@ class AdminViewsTests(TestCase):
     def test_admin_routes_require_authentication(self):
         protected_urls = [
             reverse("admin_dashboard"),
+            reverse("admin_orcamento_list"),
             reverse("admin_tamanho_list"),
             reverse("admin_espessura_list"),
             reverse("admin_material_list"),
@@ -87,6 +88,7 @@ class AdminViewsTests(TestCase):
 
         urls = [
             reverse("admin_dashboard"),
+            reverse("admin_orcamento_list"),
             reverse("admin_tamanho_list"),
             reverse("admin_espessura_list"),
             reverse("admin_material_list"),
@@ -213,3 +215,71 @@ class AdminViewsTests(TestCase):
         desconto.refresh_from_db()
         self.assertEqual(desconto.quantidade_max, 45)
         self.assertEqual(desconto.fator_desconto, Decimal("0.93"))
+
+    def test_admin_orcamentos_list_supports_filter(self):
+        self.login_staff()
+        Orcamento.objects.create(
+            nome_orcamento="Totem Recepção",
+            data_orcamento=timezone.localdate(),
+            tamanho=self.tamanho,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=1,
+            valor_total=Decimal("70.17"),
+            detalhes_json={
+                "calculo": {"valor_total_brl": "R$ 70,17"},
+                "desconto_quantidade": {"faixa": "1 a 10 unidades"},
+            },
+        )
+        Orcamento.objects.create(
+            nome_orcamento="Display de Mesa",
+            data_orcamento=timezone.localdate(),
+            tamanho=self.tamanho,
+            espessura=self.espessura,
+            material=self.material,
+            tipo_base=self.tipo_base,
+            quantidade=2,
+            valor_total=Decimal("140.34"),
+            detalhes_json={
+                "calculo": {"valor_total_brl": "R$ 140,34"},
+                "desconto_quantidade": {"faixa": "1 a 10 unidades"},
+            },
+        )
+
+        response = self.client.get(reverse("admin_orcamento_list"), {"q": "Recepção"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Totem Recepção")
+        self.assertNotContains(response, "Display de Mesa")
+        self.assertContains(response, 'value="Recepção"', html=False)
+
+    def test_admin_orcamentos_list_supports_pagination(self):
+        self.login_staff()
+        for index in range(15):
+            Orcamento.objects.create(
+                nome_orcamento=f"Orçamento {index:02d}",
+                data_orcamento=timezone.localdate(),
+                tamanho=self.tamanho,
+                espessura=self.espessura,
+                material=self.material,
+                tipo_base=self.tipo_base,
+                quantidade=1,
+                valor_total=Decimal("70.17"),
+                detalhes_json={
+                    "calculo": {"valor_total_brl": "R$ 70,17"},
+                    "desconto_quantidade": {"faixa": "1 a 10 unidades"},
+                },
+            )
+
+        first_page = self.client.get(reverse("admin_orcamento_list"))
+        second_page = self.client.get(reverse("admin_orcamento_list"), {"page": 2})
+
+        self.assertContains(first_page, "Página 1 de 2")
+        self.assertContains(first_page, "Orçamento 14")
+        self.assertContains(first_page, "Orçamento 03")
+        self.assertNotContains(first_page, "Orçamento 02")
+
+        self.assertContains(second_page, "Página 2 de 2")
+        self.assertContains(second_page, "Orçamento 02")
+        self.assertContains(second_page, "Orçamento 00")

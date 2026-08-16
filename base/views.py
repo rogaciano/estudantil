@@ -32,6 +32,12 @@ from .services.orcamentos import (
 def get_admin_sections():
     return [
         {
+            "key": "orcamentos",
+            "label": "Orçamentos",
+            "description": "Histórico de orçamentos salvos com busca e paginação.",
+            "url_name": "admin_orcamento_list",
+        },
+        {
             "key": "tamanhos",
             "label": "Tamanhos",
             "description": "Dimensões disponíveis para cálculo.",
@@ -260,6 +266,12 @@ class AdminDashboardView(AdminStaffRequiredMixin, AdminBaseContextMixin, Templat
         context = super().get_context_data(**kwargs)
         context["cards"] = [
             {
+                "label": "Orçamentos",
+                "description": "Consulte o histórico comercial salvo pela área pública.",
+                "count": Orcamento.objects.count(),
+                "url_name": "admin_orcamento_list",
+            },
+            {
                 "label": "Tamanhos",
                 "description": "Cadastre e ajuste dimensões das placas.",
                 "count": Tamanho.objects.count(),
@@ -296,6 +308,42 @@ class AdminDashboardView(AdminStaffRequiredMixin, AdminBaseContextMixin, Templat
                 "url_name": "admin_desconto_quantidade_list",
             },
         ]
+        return context
+
+
+class AdminOrcamentoListView(AdminStaffRequiredMixin, AdminBaseContextMixin, TemplateView):
+    template_name = "admin/orcamento_list.html"
+    section_key = "orcamentos"
+    paginate_by = 12
+
+    def get_queryset(self):
+        queryset = Orcamento.objects.select_related(
+            "tamanho",
+            "espessura",
+            "material",
+            "tipo_base",
+        ).order_by("-data_orcamento", "-id")
+        query = self.get_search_query()
+        if query:
+            queryset = queryset.filter(nome_orcamento__icontains=query)
+        return queryset
+
+    def get_search_query(self):
+        return self.request.GET.get("q", "").strip()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
+        paginator = Paginator(queryset, self.paginate_by)
+        page_obj = paginator.get_page(self.request.GET.get("page"))
+        context.update(
+            {
+                "orcamentos": page_obj.object_list,
+                "page_obj": page_obj,
+                "search_query": self.get_search_query(),
+                "total_orcamentos": queryset.count(),
+            }
+        )
         return context
 
 
