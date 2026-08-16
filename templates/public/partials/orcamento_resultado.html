@@ -1,0 +1,60 @@
+<div id="resultado-orcamento" class="mt-4 rounded-xl border border-slate-700 bg-slate-950/70 p-5">
+    {% if orcamento %}
+        <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+            Orçamento <strong>{{ orcamento.nome_orcamento }}</strong> registrado com sucesso em
+            {{ orcamento.data_orcamento|date:"d/m/Y" }}.
+        </div>
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            <p class="font-semibold">Não foi possível processar o orçamento.</p>
+            <ul class="mt-3 space-y-2 text-sm">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% elif resultado %}
+        <div class="space-y-5">
+            <div>
+                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Valor total</p>
+                <p class="mt-2 text-3xl font-semibold text-cyan-300">{{ resultado.valor_total_brl }}</p>
+            </div>
+
+            <dl class="grid gap-3 text-sm text-slate-300">
+                <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-800 px-4 py-3">
+                    <dt>Área calculada</dt>
+                    <dd>{{ resultado.area_m2 }} m²</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-800 px-4 py-3">
+                    <dt>Data do orçamento</dt>
+                    <dd>{{ form.cleaned_data.data_orcamento|date:"d/m/Y" }}</dd>
+                </div>
+            </dl>
+
+            {% if not orcamento %}
+                <button
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+                    hx-post="{% url 'public_orcamento_salvar' %}"
+                    hx-include="#calculadora-form"
+                    hx-target="#resultado-orcamento"
+                    hx-swap="outerHTML"
+                >
+                    Salvar orçamento
+                </button>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="space-y-3 text-sm text-slate-300">
+            <p>Preencha nome, tamanho, espessura, material e tipo de base para calcular.</p>
+            <p class="text-slate-400">O total será calculado no backend e exibido aqui em BRL.</p>
+        </div>
+    {% endif %}
+</div>

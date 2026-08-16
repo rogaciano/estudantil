@@ -1,0 +1,40 @@
+from decimal import Decimal
+
+from django.core.management.base import BaseCommand
+
+from base.models import Espessura, Material, Tamanho, TipoBase
+
+
+class Command(BaseCommand):
+    help = "Popula o catalogo inicial de tamanhos, espessuras, materiais e bases."
+
+    def handle(self, *args, **options):
+        tamanhos = [
+            {"nome": "A6", "base_mm": 105, "altura_mm": 148},
+            {"nome": "A5", "base_mm": 148, "altura_mm": 210},
+            {"nome": "A4", "base_mm": 210, "altura_mm": 297},
+            {"nome": "A3", "base_mm": 297, "altura_mm": 420},
+        ]
+        espessuras = [2, 3, 4]
+        materiais = [
+            {"tipo": "Acrílico Transparente", "preco_m2": Decimal("250.00")},
+            {"tipo": "Acrílico de Cor", "preco_m2": Decimal("300.00")},
+        ]
+        tipos_bases = [
+            {"nome_base": "Base Simples", "fator_base": Decimal("1.00")},
+            {"nome_base": "Base Reforçada", "fator_base": Decimal("1.50")},
+        ]
+
+        for tamanho in tamanhos:
+            Tamanho.objects.update_or_create(nome=tamanho["nome"], defaults=tamanho)
+
+        for milimetros in espessuras:
+            Espessura.objects.update_or_create(milimetros=milimetros)
+
+        for material in materiais:
+            Material.objects.update_or_create(tipo=material["tipo"], defaults=material)
+
+        for tipo_base in tipos_bases:
+            TipoBase.objects.update_or_create(nome_base=tipo_base["nome_base"], defaults=tipo_base)
+
+        self.stdout.write(self.style.SUCCESS("Catalogo inicial populado com sucesso."))

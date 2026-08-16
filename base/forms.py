@@ -1,0 +1,142 @@
+from django import forms
+from django.contrib.auth.forms import AuthenticationForm
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+
+from .models import Espessura, Material, Tamanho, TipoBase
+
+
+INPUT_CLASSES = (
+    "w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 "
+    "text-sm text-slate-100 outline-none ring-0 transition "
+    "focus:border-cyan-400"
+)
+
+
+class TailwindFormMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            current_class = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"{current_class} {INPUT_CLASSES}".strip()
+
+
+class OrcamentoPublicoForm(forms.Form):
+    nome_orcamento = forms.CharField(
+        label="Nome do orçamento",
+        max_length=120,
+        widget=forms.TextInput(
+            attrs={
+                "class": INPUT_CLASSES,
+                "placeholder": "Ex.: Totem recepção",
+            }
+        ),
+    )
+    data_orcamento = forms.DateField(
+        initial=timezone.localdate,
+        input_formats=["%Y-%m-%d"],
+        widget=forms.HiddenInput(),
+    )
+    tamanho = forms.ModelChoiceField(
+        label="Tamanho",
+        queryset=Tamanho.objects.none(),
+        empty_label="Selecione um tamanho",
+        widget=forms.Select(attrs={"class": INPUT_CLASSES}),
+    )
+    espessura = forms.ModelChoiceField(
+        label="Espessura",
+        queryset=Espessura.objects.none(),
+        empty_label="Selecione uma espessura",
+        widget=forms.Select(attrs={"class": INPUT_CLASSES}),
+    )
+    material = forms.ModelChoiceField(
+        label="Material",
+        queryset=Material.objects.none(),
+        empty_label="Selecione um material",
+        widget=forms.Select(attrs={"class": INPUT_CLASSES}),
+    )
+    tipo_base = forms.ModelChoiceField(
+        label="Tipo de base",
+        queryset=TipoBase.objects.none(),
+        empty_label="Selecione um tipo de base",
+        widget=forms.Select(attrs={"class": INPUT_CLASSES}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tamanho"].queryset = Tamanho.objects.all()
+        self.fields["espessura"].queryset = Espessura.objects.all()
+        self.fields["material"].queryset = Material.objects.all()
+        self.fields["tipo_base"].queryset = TipoBase.objects.all()
+
+
+class AdminAuthenticationForm(TailwindFormMixin, AuthenticationForm):
+    username = forms.CharField(label="Usuário")
+    password = forms.CharField(
+        label="Senha",
+        strip=False,
+        widget=forms.PasswordInput(),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs["autofocus"] = True
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        if not user.is_staff:
+            raise ValidationError(
+                "Somente usuários administradores podem acessar esta área.",
+                code="not_staff",
+            )
+
+
+class AdminModelForm(TailwindFormMixin, forms.ModelForm):
+    pass
+
+
+class TamanhoForm(AdminModelForm):
+    class Meta:
+        model = Tamanho
+        fields = ["nome", "base_mm", "altura_mm"]
+        labels = {
+            "nome": "Nome",
+            "base_mm": "Base (mm)",
+            "altura_mm": "Altura (mm)",
+        }
+
+    def clean_nome(self):
+        return self.cleaned_data["nome"].strip()
+
+
+class EspessuraForm(AdminModelForm):
+    class Meta:
+        model = Espessura
+        fields = ["milimetros"]
+        labels = {"milimetros": "Espessura (mm)"}
+
+
+class MaterialForm(AdminModelForm):
+    class Meta:
+        model = Material
+        fields = ["tipo", "preco_m2"]
+        labels = {
+            "tipo": "Material",
+            "preco_m2": "Preço por m² (R$)",
+        }
+
+    def clean_tipo(self):
+        return self.cleaned_data["tipo"].strip()
+
+
+class TipoBaseForm(AdminModelForm):
+    class Meta:
+        model = TipoBase
+        fields = ["nome_base", "fator_base"]
+        labels = {
+            "nome_base": "Tipo de base",
+            "fator_base": "Fator multiplicador",
+        }
+
+    def clean_nome_base(self):
+        return self.cleaned_data["nome_base"].strip()

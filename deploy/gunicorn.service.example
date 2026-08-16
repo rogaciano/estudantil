@@ -1,0 +1,15 @@
+[Unit]
+Description=Gunicorn - Calculadora de Placas
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/calculadora-placas
+EnvironmentFile=/var/www/calculadora-placas/.env
+ExecStart=/var/www/calculadora-placas/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8010 --workers 3 --timeout 120
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

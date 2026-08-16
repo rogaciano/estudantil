@@ -1,0 +1,18 @@
+<nav class="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+    <div class="flex flex-wrap gap-3">
+        <a
+            href="{% url 'admin_dashboard' %}"
+            class="rounded-xl px-4 py-2 text-sm font-medium transition {% if not current_section %}bg-cyan-400 text-slate-950{% else %}bg-slate-950 text-slate-200 hover:bg-slate-800{% endif %}"
+        >
+            Dashboard
+        </a>
+        {% for section in admin_sections %}
+            <a
+                href="{% url section.url_name %}"
+                class="rounded-xl px-4 py-2 text-sm font-medium transition {% if current_section == section.key %}bg-cyan-400 text-slate-950{% else %}bg-slate-950 text-slate-200 hover:bg-slate-800{% endif %}"
+            >
+                {{ section.label }}
+            </a>
+        {% endfor %}
+    </div>
+</nav>

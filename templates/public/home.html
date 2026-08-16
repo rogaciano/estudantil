@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Área pública | Calculadora de Placas{% endblock %}
+
+{% block content %}
+<section class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+    <div class="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl shadow-slate-950/30">
+        <p class="text-sm uppercase tracking-[0.2em] text-cyan-400">Orçamentos em acrílico</p>
+        <h1 class="mt-3 text-3xl font-semibold tracking-tight">Calcule e registre orçamentos em segundos</h1>
+        <p class="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+            Os preços saem do catálogo mantido no banco, o cálculo roda no backend e o resultado
+            aparece na lateral sem recarregar a página inteira.
+        </p>
+
+        <form
+            id="calculadora-form"
+            class="mt-8 grid gap-4 md:grid-cols-2"
+            hx-post="{% url 'public_orcamento_calcular' %}"
+            hx-target="#resultado-orcamento"
+            hx-swap="outerHTML"
+            hx-trigger="change delay:250ms, submit"
+            hx-sync="this:replace"
+        >
+            {% csrf_token %}
+            {{ form.data_orcamento }}
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-200">Nome do orçamento</span>
+                {{ form.nome_orcamento }}
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-200">Data</span>
+                <input
+                    type="text"
+                    value="{{ data_orcamento|date:'d/m/Y' }}"
+                    readonly
+                    class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-400"
+                >
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-200">Tamanho</span>
+                {{ form.tamanho }}
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-200">Espessura</span>
+                {{ form.espessura }}
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-200">Material</span>
+                {{ form.material }}
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-200">Tipo de base</span>
+                {{ form.tipo_base }}
+            </label>
+
+            <div class="md:col-span-2">
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+                >
+                    Calcular
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <aside class="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <h2 class="text-lg font-semibold">Resultado</h2>
+        {% include "public/partials/orcamento_resultado.html" %}
+    </aside>
+</section>
+{% endblock %}
