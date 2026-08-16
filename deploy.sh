@@ -28,6 +28,11 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+if ! git config --global --get-all safe.directory | grep -Fxq "$PROJECT_DIR"; then
+    echo "==> Registrando repositorio como safe.directory para o usuario atual"
+    git config --global --add safe.directory "$PROJECT_DIR"
+fi
+
 echo "==> Atualizando codigo"
 git -C "$PROJECT_DIR" fetch "$GIT_REMOTE"
 git -C "$PROJECT_DIR" pull --ff-only "$GIT_REMOTE" "$GIT_BRANCH"
