@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from base.models import Espessura, Material, Orcamento, Tamanho, TipoBase
+from base.models import Espessura, FatorBaseTamanho, Material, Orcamento, Tamanho, TipoBase
 
 
 class AdminViewsTests(TestCase):
@@ -28,6 +28,10 @@ class AdminViewsTests(TestCase):
         )
         self.tipo_base = TipoBase.objects.create(
             nome_base="Base Simples",
+        )
+        self.fator_base_tamanho = FatorBaseTamanho.objects.create(
+            tipo_base=self.tipo_base,
+            tamanho=self.tamanho,
             fator_base=Decimal("1.00"),
         )
 
@@ -41,6 +45,7 @@ class AdminViewsTests(TestCase):
             reverse("admin_espessura_list"),
             reverse("admin_material_list"),
             reverse("admin_tipo_base_list"),
+            reverse("admin_fator_base_tamanho_list"),
         ]
 
         for url in protected_urls:
@@ -72,6 +77,7 @@ class AdminViewsTests(TestCase):
             reverse("admin_espessura_list"),
             reverse("admin_material_list"),
             reverse("admin_tipo_base_list"),
+            reverse("admin_fator_base_tamanho_list"),
         ]
 
         for url in urls:
@@ -131,3 +137,33 @@ class AdminViewsTests(TestCase):
             "Este material está vinculado a orçamentos e não pode ser excluído.",
         )
         self.assertTrue(Material.objects.filter(pk=self.material.pk).exists())
+
+    def test_staff_user_can_manage_fator_base_por_tamanho(self):
+        self.login_staff()
+        novo_tamanho = Tamanho.objects.create(nome="A3", base_mm=297, altura_mm=420)
+
+        create_response = self.client.post(
+            reverse("admin_fator_base_tamanho_create"),
+            {
+                "tipo_base": self.tipo_base.pk,
+                "tamanho": novo_tamanho.pk,
+                "fator_base": "1.35",
+            },
+            follow=True,
+        )
+        self.assertContains(create_response, "Fator por tamanho criado com sucesso.")
+        fator = FatorBaseTamanho.objects.get(tipo_base=self.tipo_base, tamanho=novo_tamanho)
+        self.assertEqual(fator.fator_base, Decimal("1.35"))
+
+        update_response = self.client.post(
+            reverse("admin_fator_base_tamanho_update", args=[fator.pk]),
+            {
+                "tipo_base": self.tipo_base.pk,
+                "tamanho": novo_tamanho.pk,
+                "fator_base": "1.40",
+            },
+            follow=True,
+        )
+        self.assertContains(update_response, "Fator por tamanho atualizado com sucesso.")
+        fator.refresh_from_db()
+        self.assertEqual(fator.fator_base, Decimal("1.40"))

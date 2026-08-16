@@ -11,12 +11,13 @@ from django.views.generic import CreateView, DeleteView, ListView, TemplateView,
 from .forms import (
     AdminAuthenticationForm,
     EspessuraForm,
+    FatorBaseTamanhoForm,
     MaterialForm,
     OrcamentoPublicoForm,
     TamanhoForm,
     TipoBaseForm,
 )
-from .models import Espessura, Material, Tamanho, TipoBase
+from .models import Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
 from .services.orcamentos import calcular_orcamento_catalogo, registrar_orcamento_calculado
 
 
@@ -45,6 +46,12 @@ def get_admin_sections():
             "label": "Tipos de base",
             "description": "Fatores multiplicadores aplicados ao total.",
             "url_name": "admin_tipo_base_list",
+        },
+        {
+            "key": "fatores-base",
+            "label": "Fatores por tamanho",
+            "description": "Relação entre tipo de base, tamanho e fator usado no cálculo.",
+            "url_name": "admin_fator_base_tamanho_list",
         },
     ]
 
@@ -189,9 +196,15 @@ class AdminDashboardView(AdminStaffRequiredMixin, AdminBaseContextMixin, Templat
             },
             {
                 "label": "Tipos de base",
-                "description": "Gerencie os fatores aplicados ao cálculo final.",
+                "description": "Gerencie os tipos de base disponíveis na calculadora.",
                 "count": TipoBase.objects.count(),
                 "url_name": "admin_tipo_base_list",
+            },
+            {
+                "label": "Fatores por tamanho",
+                "description": "Defina o fator de cada tipo de base para cada tamanho.",
+                "count": FatorBaseTamanho.objects.count(),
+                "url_name": "admin_fator_base_tamanho_list",
             },
         ]
         return context
@@ -479,10 +492,10 @@ class TipoBaseListView(AdminCatalogListView):
     create_url_name = "admin_tipo_base_create"
     edit_url_name = "admin_tipo_base_update"
     delete_url_name = "admin_tipo_base_delete"
-    columns = ["Tipo de base", "Fator"]
+    columns = ["Tipo de base", "Fatores configurados"]
 
     def get_row_cells(self, obj):
-        return [obj.nome_base, f"{obj.fator_base:.2f}".replace(".", ",")]
+        return [obj.nome_base, obj.fatores_por_tamanho.count()]
 
 
 class TipoBaseCreateView(AdminCatalogFormMixin, CreateView):
@@ -527,4 +540,71 @@ class TipoBaseDeleteView(AdminCatalogDeleteView):
     success_message = "Tipo de base \"{item}\" excluído com sucesso."
     protected_message = (
         "Este tipo de base está vinculado a orçamentos e não pode ser excluído."
+    )
+
+
+class FatorBaseTamanhoListView(AdminCatalogListView):
+    model = FatorBaseTamanho
+    resource_name_plural = "Fatores por tamanho"
+    resource_name_singular = "fator por tamanho"
+    section_key = "fatores-base"
+    list_url_name = "admin_fator_base_tamanho_list"
+    create_url_name = "admin_fator_base_tamanho_create"
+    edit_url_name = "admin_fator_base_tamanho_update"
+    delete_url_name = "admin_fator_base_tamanho_delete"
+    columns = ["Tipo de base", "Tamanho", "Fator"]
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("tipo_base", "tamanho")
+
+    def get_row_cells(self, obj):
+        return [
+            obj.tipo_base.nome_base,
+            obj.tamanho.nome,
+            f"{obj.fator_base:.2f}".replace(".", ","),
+        ]
+
+
+class FatorBaseTamanhoCreateView(AdminCatalogFormMixin, CreateView):
+    model = FatorBaseTamanho
+    form_class = FatorBaseTamanhoForm
+    resource_name_plural = "Fatores por tamanho"
+    resource_name_singular = "fator por tamanho"
+    section_key = "fatores-base"
+    list_url_name = "admin_fator_base_tamanho_list"
+    create_url_name = "admin_fator_base_tamanho_create"
+    edit_url_name = "admin_fator_base_tamanho_update"
+    delete_url_name = "admin_fator_base_tamanho_delete"
+    page_title = "Novo fator por tamanho"
+    submit_label = "Criar fator"
+    success_message = "Fator por tamanho criado com sucesso."
+
+
+class FatorBaseTamanhoUpdateView(AdminCatalogFormMixin, UpdateView):
+    model = FatorBaseTamanho
+    form_class = FatorBaseTamanhoForm
+    resource_name_plural = "Fatores por tamanho"
+    resource_name_singular = "fator por tamanho"
+    section_key = "fatores-base"
+    list_url_name = "admin_fator_base_tamanho_list"
+    create_url_name = "admin_fator_base_tamanho_create"
+    edit_url_name = "admin_fator_base_tamanho_update"
+    delete_url_name = "admin_fator_base_tamanho_delete"
+    page_title = "Editar fator por tamanho"
+    submit_label = "Salvar alterações"
+    success_message = "Fator por tamanho atualizado com sucesso."
+
+
+class FatorBaseTamanhoDeleteView(AdminCatalogDeleteView):
+    model = FatorBaseTamanho
+    resource_name_plural = "Fatores por tamanho"
+    resource_name_singular = "fator por tamanho"
+    section_key = "fatores-base"
+    list_url_name = "admin_fator_base_tamanho_list"
+    create_url_name = "admin_fator_base_tamanho_create"
+    edit_url_name = "admin_fator_base_tamanho_update"
+    delete_url_name = "admin_fator_base_tamanho_delete"
+    success_message = "Fator por tamanho \"{item}\" excluído com sucesso."
+    protected_message = (
+        "Este fator está vinculado a orçamentos e não pode ser excluído."
     )

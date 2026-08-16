@@ -50,6 +50,26 @@ class Material(models.Model):
 
 class TipoBase(models.Model):
     nome_base = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        db_table = "tipos_bases"
+        ordering = ["nome_base"]
+
+    def __str__(self) -> str:
+        return self.nome_base
+
+
+class FatorBaseTamanho(models.Model):
+    tipo_base = models.ForeignKey(
+        TipoBase,
+        on_delete=models.CASCADE,
+        related_name="fatores_por_tamanho",
+    )
+    tamanho = models.ForeignKey(
+        Tamanho,
+        on_delete=models.CASCADE,
+        related_name="fatores_tipo_base",
+    )
     fator_base = models.DecimalField(
         max_digits=4,
         decimal_places=2,
@@ -57,11 +77,17 @@ class TipoBase(models.Model):
     )
 
     class Meta:
-        db_table = "tipos_bases"
-        ordering = ["nome_base"]
+        db_table = "fatores_base_tamanho"
+        ordering = ["tipo_base__nome_base", "tamanho__base_mm", "tamanho__altura_mm"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tipo_base", "tamanho"],
+                name="unique_tipo_base_tamanho",
+            )
+        ]
 
     def __str__(self) -> str:
-        return f"{self.nome_base} ({self.fator_base})"
+        return f"{self.tipo_base.nome_base} - {self.tamanho.nome} ({self.fator_base})"
 
 
 class Orcamento(models.Model):

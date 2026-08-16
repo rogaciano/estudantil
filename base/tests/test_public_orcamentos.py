@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from base.models import Espessura, Material, Orcamento, Tamanho, TipoBase
+from base.models import Espessura, FatorBaseTamanho, Material, Orcamento, Tamanho, TipoBase
 
 
 class PublicOrcamentoFlowTests(TestCase):
@@ -23,7 +23,16 @@ class PublicOrcamentoFlowTests(TestCase):
         )
         self.tipo_base = TipoBase.objects.create(
             nome_base="Base Reforçada",
+        )
+        FatorBaseTamanho.objects.create(
+            tipo_base=self.tipo_base,
+            tamanho=self.tamanho_a4,
             fator_base="1.50",
+        )
+        FatorBaseTamanho.objects.create(
+            tipo_base=self.tipo_base,
+            tamanho=self.tamanho_a3,
+            fator_base="1.80",
         )
         self.payload = {
             "nome_orcamento": "Totem Recepção",
@@ -66,7 +75,7 @@ class PublicOrcamentoFlowTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "R$ 140,33")
+        self.assertContains(response, "R$ 168,40")
         self.assertContains(response, "0,124740 m²")
         self.assertNotContains(response, "R$ 70,17")
         self.assertNotContains(response, "0,062370 m²")
@@ -123,6 +132,9 @@ class PublicOrcamentoFlowTests(TestCase):
                     "id": self.tipo_base.id,
                     "nome_base": "Base Reforçada",
                     "fator_base": "1.50",
+                    "fator_base_tamanho_id": self.tipo_base.fatores_por_tamanho.get(
+                        tamanho=self.tamanho_a4
+                    ).id,
                 },
                 "calculo": {
                     "area_m2": "0.062370",

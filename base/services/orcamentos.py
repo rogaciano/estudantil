@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 
-from ..models import Orcamento
+from ..models import FatorBaseTamanho, Orcamento
 
 
 METROS_POR_MILIMETRO = Decimal("1000")
@@ -12,6 +12,10 @@ class ResultadoCalculoOrcamento:
     area_m2: Decimal
     valor_total: Decimal
     valor_total_brl: str
+
+
+class FatorBaseNaoConfiguradoError(Exception):
+    pass
 
 
 def formatar_brl(valor: Decimal) -> str:
@@ -45,16 +49,30 @@ def calcular_orcamento(*, base_mm: int, altura_mm: int, espessura_mm: int, preco
 
 
 def calcular_orcamento_catalogo(*, tamanho, espessura, material, tipo_base) -> ResultadoCalculoOrcamento:
+    fator_relacao = obter_fator_base_por_tamanho(tipo_base=tipo_base, tamanho=tamanho)
     return calcular_orcamento(
         base_mm=tamanho.base_mm,
         altura_mm=tamanho.altura_mm,
         espessura_mm=espessura.milimetros,
         preco_m2=material.preco_m2,
-        fator_base=tipo_base.fator_base,
+        fator_base=fator_relacao.fator_base,
     )
 
 
+def obter_fator_base_por_tamanho(*, tipo_base, tamanho) -> FatorBaseTamanho:
+    try:
+        return FatorBaseTamanho.objects.select_related("tipo_base", "tamanho").get(
+            tipo_base=tipo_base,
+            tamanho=tamanho,
+        )
+    except FatorBaseTamanho.DoesNotExist as exc:
+        raise FatorBaseNaoConfiguradoError(
+            "Não existe fator configurado para o tipo de base no tamanho selecionado."
+        ) from exc
+
+
 def montar_snapshot_orcamento(*, tamanho, espessura, material, tipo_base, resultado: ResultadoCalculoOrcamento, data_orcamento) -> dict:
+    fator_relacao = obter_fator_base_por_tamanho(tipo_base=tipo_base, tamanho=tamanho)
     return {
         "data_orcamento": data_orcamento.isoformat(),
         "tamanho": {
@@ -75,7 +93,8 @@ def montar_snapshot_orcamento(*, tamanho, espessura, material, tipo_base, result
         "tipo_base": {
             "id": tipo_base.id,
             "nome_base": tipo_base.nome_base,
-            "fator_base": f"{tipo_base.fator_base:.2f}",
+            "fator_base": f"{fator_relacao.fator_base:.2f}",
+            "fator_base_tamanho_id": fator_relacao.id,
         },
         "calculo": {
             "area_m2": f"{resultado.area_m2:.6f}",

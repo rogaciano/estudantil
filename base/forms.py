@@ -3,7 +3,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Espessura, Material, Tamanho, TipoBase
+from .models import Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
+from .services.orcamentos import FatorBaseNaoConfiguradoError, obter_fator_base_por_tamanho
 
 
 INPUT_CLASSES = (
@@ -69,6 +70,19 @@ class OrcamentoPublicoForm(forms.Form):
         self.fields["material"].queryset = Material.objects.all()
         self.fields["tipo_base"].queryset = TipoBase.objects.all()
 
+    def clean(self):
+        cleaned_data = super().clean()
+        tamanho = cleaned_data.get("tamanho")
+        tipo_base = cleaned_data.get("tipo_base")
+
+        if tamanho and tipo_base:
+            try:
+                obter_fator_base_por_tamanho(tipo_base=tipo_base, tamanho=tamanho)
+            except FatorBaseNaoConfiguradoError as exc:
+                raise ValidationError(str(exc))
+
+        return cleaned_data
+
 
 class AdminAuthenticationForm(TailwindFormMixin, AuthenticationForm):
     username = forms.CharField(label="Usuário")
@@ -132,11 +146,21 @@ class MaterialForm(AdminModelForm):
 class TipoBaseForm(AdminModelForm):
     class Meta:
         model = TipoBase
-        fields = ["nome_base", "fator_base"]
+        fields = ["nome_base"]
         labels = {
             "nome_base": "Tipo de base",
-            "fator_base": "Fator multiplicador",
         }
 
     def clean_nome_base(self):
         return self.cleaned_data["nome_base"].strip()
+
+
+class FatorBaseTamanhoForm(AdminModelForm):
+    class Meta:
+        model = FatorBaseTamanho
+        fields = ["tipo_base", "tamanho", "fator_base"]
+        labels = {
+            "tipo_base": "Tipo de base",
+            "tamanho": "Tamanho",
+            "fator_base": "Fator multiplicador",
+        }

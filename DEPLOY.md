@@ -64,6 +64,24 @@ python manage.py collectstatic --noinput
 python manage.py createsuperuser
 ```
 
+Depois do primeiro setup, use o script de deploy para atualizações rotineiras:
+
+```bash
+chmod +x deploy.sh
+sudo ./deploy.sh
+```
+
+Ele executa:
+
+- `git pull --ff-only`
+- `pip install -r requirements.txt`
+- `python manage.py migrate`
+- `python manage.py collectstatic --noinput`
+- ajuste de permissões do `db.sqlite3` e do diretório do projeto
+- `systemctl restart calculadora-placas`
+
+Importante: o script **não executa `seed_catalogo`** em deploy normal, para não sobrescrever preços e cadastros mantidos pelo admin.
+
 ## 5. Validar configuração de produção
 
 ```bash

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
-from base.models import Espessura, Material, Tamanho, TipoBase
+from base.models import Espessura, FatorBaseTamanho, Material, Tamanho, TipoBase
 
 
 class Command(BaseCommand):
@@ -21,8 +21,8 @@ class Command(BaseCommand):
             {"tipo": "Acrílico de Cor", "preco_m2": Decimal("300.00")},
         ]
         tipos_bases = [
-            {"nome_base": "Base Simples", "fator_base": Decimal("1.00")},
-            {"nome_base": "Base Reforçada", "fator_base": Decimal("1.50")},
+            {"nome_base": "Base Simples", "fator_padrao": Decimal("1.00")},
+            {"nome_base": "Base Reforçada", "fator_padrao": Decimal("1.50")},
         ]
 
         for tamanho in tamanhos:
@@ -35,6 +35,14 @@ class Command(BaseCommand):
             Material.objects.update_or_create(tipo=material["tipo"], defaults=material)
 
         for tipo_base in tipos_bases:
-            TipoBase.objects.update_or_create(nome_base=tipo_base["nome_base"], defaults=tipo_base)
+            tipo_base_obj, _ = TipoBase.objects.update_or_create(
+                nome_base=tipo_base["nome_base"],
+            )
+            for tamanho_obj in Tamanho.objects.all():
+                FatorBaseTamanho.objects.update_or_create(
+                    tipo_base=tipo_base_obj,
+                    tamanho=tamanho_obj,
+                    defaults={"fator_base": tipo_base["fator_padrao"]},
+                )
 
         self.stdout.write(self.style.SUCCESS("Catalogo inicial populado com sucesso."))
